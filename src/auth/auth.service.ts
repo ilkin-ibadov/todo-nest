@@ -1,0 +1,83 @@
+import {
+    Injectable,
+    UnauthorizedException,
+} from '@nestjs/common';
+import { UsersService } from '../users/users.service';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
+import { Role } from '../common/enums/role.enum';
+
+@Injectable()
+export class AuthService {
+    constructor(private usersService: UsersService, private jwt: JwtService) { }
+
+    // Generate Access + Refresh Tokens
+    async generateTokens(user: any) {
+        const payload: any = { id: String(user._id), role: user.role };
+
+        const accessToken = await this.jwt.signAsync(payload, {
+            secret: process.env.JWT_SECRET as string,
+            expiresIn: 15 * 60 * 1000,
+        });
+
+        const refreshToken = await this.jwt.signAsync(payload, {
+            secret: process.env.JWT_REFRESH_SECRET as string,
+            expiresIn: 7 * 24 * 60 * 60 * 1000,
+        });
+
+        return { accessToken, refreshToken };
+    }
+
+    // save hashed refresh token in DB
+    async updateRefreshToken(userId: string, refreshToken: string) {
+        const hashed = await bcrypt.hash(refreshToken, 10);
+        await this.usersService.update(userId, { refreshToken: hashed });
+    }
+
+    // verify and rotate refresh token
+    async refresh(userId: string, token: string) {
+        const user = await this.usersService.findById(userId);
+
+        if (!user || !user.refreshToken)
+            throw new UnauthorizedException('No refresh token registered');
+
+        const valid = await bcrypt.compare(token, user.refreshToken);
+        if (!valid) throw new UnauthorizedException('Invalid refresh token');
+
+        const tokens = await this.generateTokens(user);
+        await this.updateRefreshToken(userId, tokens.refreshToken);
+
+        return tokens;
+    }
+
+    // Register
+    async register(dto: RegisterDto) {
+        dto.password = await bcrypt.hash(dto.password, 10);
+
+        const user = await this.usersService.create({
+            ...dto,
+            role: Role.USER,
+        });
+
+        const tokens = await this.generateTokens(user);
+        await this.updateRefreshToken(String(user._id), tokens.refreshToken);
+
+        return tokens;
+    }
+
+    // Login
+    async login(dto: LoginDto) {
+        const user = await this.usersService.findByEmail(dto.email);
+        if (!user) throw new UnauthorizedException('Invalid credentials');
+
+        const valid = await bcrypt.compare(dto.password, user.password);
+        if (!valid) throw new UnauthorizedException('Invalid credentials');
+
+        const tokens = await this.generateTokens(user);
+        await this.updateRefreshToken(String(user._id), tokens.refreshToken);
+
+        return tokens;
+    }
+}

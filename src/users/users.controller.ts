@@ -5,6 +5,9 @@ import { JwtAuthGuard } from "src/common/guards/jwt-auth.guard";
 import { RolesGuard } from "src/common/guards/roles.guard";
 import { Roles } from "src/common/decorators/roles.decorator";
 import { Role } from "src/common/enums/role.enum";
+import { UserResponseDto } from "./dto/user-response.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
+import { CreateUserDto } from "./dto/create-user.dto";
 
 @ApiTags("Users")
 @ApiBearerAuth()
@@ -15,19 +18,25 @@ export class UsersController {
 
     @Roles(Role.ADMIN)
     @Get()
-    getAllUsers() {
+    getAllUsers(): Promise<UserResponseDto[]> {
         return this.service.getAllUsers()
     }
 
     @Roles(Role.ADMIN)
     @Get(':email')
-    findByEmail(@Param() email: string) {
+    findByEmail(@Param() email: string): Promise<UserResponseDto> {
         return this.service.findByEmail(email)
     }
 
     @Roles(Role.ADMIN || Role.USER)
     @Post('new')
-    create(@Body() body: any) {
-        return this.service.create(body)
+    create(@Body() dto: CreateUserDto): Promise<UserResponseDto> {
+        return this.service.create(dto)
+    }
+
+    @Roles(Role.ADMIN || Role.USER)
+    @Post('update')
+    update(@Body() dto: UpdateUserDto, @Param('id') id: string,): Promise<UserResponseDto> {
+        return this.service.update(id, dto)
     }
 }
