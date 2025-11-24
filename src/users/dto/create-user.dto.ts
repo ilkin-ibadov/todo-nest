@@ -4,11 +4,6 @@ import { Role } from '../../common/enums/role.enum';
 
 export class CreateUserDto {
   @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @ApiProperty()
   @IsEmail()
   email: string;
 

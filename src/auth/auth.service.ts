@@ -37,17 +37,24 @@ export class AuthService {
     }
 
     // verify and rotate refresh token
-    async refresh(userId: string, token: string) {
-        const user = await this.usersService.findById(userId);
+    async refresh(user: any) {
+        const { id, refreshToken: incomingToken } = user;
 
-        if (!user || !user.refreshToken)
-            throw new UnauthorizedException('No refresh token registered');
+        const dbUser = await this.usersService.findById(id);
 
-        const valid = await bcrypt.compare(token, user.refreshToken);
-        if (!valid) throw new UnauthorizedException('Invalid refresh token');
+        if (!dbUser || !dbUser.refreshToken)
+            throw new UnauthorizedException('Refresh token not found');
 
-        const tokens = await this.generateTokens(user);
-        await this.updateRefreshToken(userId, tokens.refreshToken);
+        const tokenMatches = await bcrypt.compare(
+            incomingToken,
+            dbUser.refreshToken,
+        );
+
+        if (!tokenMatches)
+            throw new UnauthorizedException('Refresh token invalid');
+
+        const tokens = await this.generateTokens(dbUser);
+        await this.updateRefreshToken(id, tokens.refreshToken);
 
         return tokens;
     }
@@ -69,7 +76,7 @@ export class AuthService {
 
     // Login
     async login(dto: LoginDto) {
-        const user = await this.usersService.findByEmail(dto.email);
+        const user = await this.usersService.findByEmailRaw(dto.email);
         if (!user) throw new UnauthorizedException('Invalid credentials');
 
         const valid = await bcrypt.compare(dto.password, user.password);

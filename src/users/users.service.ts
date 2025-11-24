@@ -20,20 +20,49 @@ export class UsersService {
         };
     }
 
-    create(dto: CreateUserDto) {
-        return this.model.create(dto)
+    private toUserListDto(users: UserDocument[]): UserResponseDto[] {
+        return users.map(u => this.toUserResponseDto(u));
     }
 
-    findByEmail(email: string) {
-        return this.model.findOne({ email }).exec();
+    async create(dto: CreateUserDto) {
+        const user = await this.model.create(dto);
+        return this.toUserResponseDto(user)
     }
 
-    getAllUsers() {
-        return this.model.find().select('-password -refreshToken');
+    async findByEmail(email: string) {
+        const user = await this.model.findOne({ email }).exec();
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        return this.toUserResponseDto(user);
     }
 
-    findById(id: string) {
-        return this.model.findById(id);
+    async findByEmailRaw(email: string): Promise<UserDocument | null> {
+        const user = await this.model.findOne({ email }).exec();
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        return user;
+    }
+
+    async getAllUsers() {
+        const users = await this.model.find().select('-password -refreshToken').exec();
+        if (!users || users.length === 0) {
+            throw new NotFoundException('No users not found');
+        }
+
+        return this.toUserListDto(users);
+    }
+
+    async findById(id: string): Promise<UserDocument | null> {
+        const user = await this.model.findById(id);
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        return user;
     }
 
     async update(id: string, dto: UpdateUserDto): Promise<UserResponseDto> {
