@@ -1,9 +1,14 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { AuthModule } from "./auth/auth.module"
-import { UsersModule } from "./users/users.module"
+import { MongoModule } from "./modules/mongo/mongo.module"
+import { AuthModule } from "./modules/auth/auth.module"
+import { UserModule } from "./modules/user/user.module"
+import { MailModule } from "./modules/mail/mail.module"
+import { RedisModule } from "./modules/redis/redis.module"
+import { KafkaModule } from "./modules/kafka/kafka.module"
 import { ConfigModule } from '@nestjs/config';
-import {TodosModule} from "./todos/todos.module"
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { typeOrmConfig } from "./ormconfig"
 
 @Module({
   imports: [
@@ -12,8 +17,12 @@ import {TodosModule} from "./todos/todos.module"
     }),
     MongooseModule.forRoot(process.env.MONGO_URI!),
     AuthModule,
-    UsersModule,
-    TodosModule
+    UserModule,
+    MongoModule,
+    MailModule,
+    RedisModule,
+    KafkaModule,
+    TypeOrmModule.forRoot(typeOrmConfig),
   ],
 })
 export class AppModule { }

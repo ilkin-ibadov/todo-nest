@@ -1,5 +1,5 @@
 import { Body, Param, Controller, Get, Post, UseGuards } from "@nestjs/common";
-import { UsersService } from "./users.service";
+import { UserService } from "./user.service";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { JwtAuthGuard } from "src/common/guards/jwt-auth.guard";
 import { RolesGuard } from "src/common/guards/roles.guard";
@@ -14,8 +14,8 @@ import { ApiParam } from "@nestjs/swagger";
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
-export class UsersController {
-    constructor(private service: UsersService) { }
+export class UserController {
+    constructor(private service: UserService) { }
 
     @Roles(Role.ADMIN)
     @Get()

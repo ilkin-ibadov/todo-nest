@@ -1,16 +1,24 @@
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as process from "process";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.setGlobalPrefix("api")
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }))
 
   const config = new DocumentBuilder()
-  .setTitle("Todo API")
-  .setDescription("Todo API with Auth and Roles")
-  .setVersion("1.0")
-  .addBearerAuth()
-  .build()
+    .setTitle("Auth service")
+    .setDescription("Auth service for social media")
+    .setVersion("1.0")
+    .addBearerAuth()
+    .build()
 
   const document = SwaggerModule.createDocument(app, config)
   SwaggerModule.setup("api", app, document)
